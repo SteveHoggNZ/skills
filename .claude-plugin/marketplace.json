@@ -1,11 +1,12 @@
 {
   "name": "shnz-skills",
-  "description": "Private skill marketplace for agentic automation",
-  "owner": "SteveHoggNZ",
+  "owner": {
+    "name": "SteveHoggNZ"
+  },
   "plugins": [
     {
       "name": "shnz",
-      "path": "plugins/shnz",
+      "source": "./plugins/shnz",
       "description": "Core skills for development workflows including context bundling, code review, and automation utilities",
       "version": "1.0.0"
     }

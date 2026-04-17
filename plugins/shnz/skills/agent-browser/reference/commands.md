@@ -63,6 +63,8 @@ Locate an element by text, role, or label.
 
 - `find text "Sign in" click` — combine with an action (`click`, `fill ...`, `type ...`)
 - `find text "Sign in"` on its own just prints `Done` — no ref info. Use `snapshot --interactive | grep "Sign in"` for discovery.
+- **Flakiness caveat**: `find text` may return `Element not found` even when the element is present in the snapshot, especially right after a DOM mutation. If you hit that despite seeing the text in a fresh snapshot, fall back to clicking via the element's `@ref`.
+- **First-match caveat**: `find text "X" click` clicks the **first** element in document order with text matching `X`. If the same text appears more than once on the page (common: headers and forms both have "Sign in" / "Submit" / "OK"), this will collide. Use a ref from a fresh snapshot when text is non-unique.
 
 ## Interaction
 

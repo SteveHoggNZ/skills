@@ -137,6 +137,10 @@ In `cmd1 && cmd2 && cmd3`, if `cmd1` errors, `cmd2` and `cmd3` never run. This i
 
 `agent-browser` operates on one tab. Opening links that spawn new tabs will leave the daemon on the original tab. Use `open <url>` to navigate programmatically instead of relying on `target="_blank"` links.
 
+## Daemon shutdown is `close`, not `stop`
+
+`npx agent-browser close` shuts the daemon. `stop` is not a subcommand — guessing it prints the top-level help and exits non-zero. If you need the CLI's own authoritative list, `npx agent-browser --help` is cheap.
+
 ## Screenshot paths resolve relative to the daemon's CWD
 
 `npx agent-browser screenshot out.png` writes `out.png` relative to wherever the daemon was launched, not your current shell. **Always pass an absolute path** (`/tmp/out.png`).

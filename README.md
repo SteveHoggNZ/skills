@@ -42,13 +42,18 @@ Skills whose job is to operate on other skills use the **`skill-*` prefix** (cur
 
 ## Installing
 
-Point Claude Code at this marketplace (adjust path if cloned elsewhere):
+See [docs/INSTALL.md](docs/INSTALL.md) for the full install + update + uninstall flow, including the developer mode for hacking on this marketplace.
+
+**TL;DR — as a consumer**, in a Claude Code session:
 
 ```
-/plugin add /Users/one/Projects/SteveHoggNZ/skills
+/plugin marketplace add SteveHoggNZ/skills
+/plugin install shnz@shnz-skills
 ```
 
-Skills are invoked via natural language matching their `description`, or explicitly via `/<skill-name>` when they register a slash command.
+Claude Code clones the repo into its managed cache and auto-pulls updates on startup. This repo is **private** — collaborator access with SSH loaded (`ssh-add`) or a `GITHUB_TOKEN` is required. Pin to a version with `SteveHoggNZ/skills@v1.0` if you want a specific tag/branch/commit.
+
+Skills are then invoked via natural language matching their `description`, or explicitly via `/<skill-name>` when they register a slash command. Developers editing this marketplace should install from a local clone instead — see [INSTALL.md](docs/INSTALL.md#for-developers).
 
 ## Developing a skill
 

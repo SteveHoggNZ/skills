@@ -12,7 +12,8 @@ Private skill marketplace for agentic automation — a small, opinionated collec
 │       └── skills/
 │           ├── dump/             # repomix-based context bundling
 │           ├── agent-browser/    # browser automation CLI + per-site registry
-│           └── narrative-commit/ # split uncommitted changes into a clean conventional-commits sequence
+│           ├── narrative-commit/ # split uncommitted changes into a clean conventional-commits sequence
+│           └── skill-iterate/    # meta-skill: iterate a target skill toward convergence
 └── docs/                     # cross-cutting process notes
     └── AB_TESTING.md         # how to validate that a skill actually helps
 ```
@@ -31,6 +32,11 @@ Each skill directory follows the same layout:
 | [`dump`](plugins/shnz/skills/dump/) | Generates focused code context bundles with `repomix` for use in third-party AI tools. Trigger: `/dump`, "context dump", "bundle for [tool]". |
 | [`agent-browser`](plugins/shnz/skills/agent-browser/) | Drives any web UI with the `agent-browser` CLI and a persistent per-site registry (gitignored) that accumulates selectors, gotchas, and workflows across sessions. |
 | [`narrative-commit`](plugins/shnz/skills/narrative-commit/) | Analyses uncommitted changes, groups them by layer/feature, proposes a conventional-commits plan, and (on approval) creates the commits. No AI attribution in messages. |
+| [`skill-iterate`](plugins/shnz/skills/skill-iterate/) | **Meta-skill.** Drives a target skill toward its optimal floor by running a probe subagent on a concrete task, collecting a structured report, applying concrete edits on your approval, and repeating until the probe reports no friction. Complements `docs/AB_TESTING.md` (A/B is "should this skill exist?"; `skill-iterate` is "is it as good as it can be?"). |
+
+### Naming convention
+
+Skills whose job is to operate on other skills use the **`skill-*` prefix** (currently: `skill-iterate`; possible future additions: `skill-review`, `skill-doctor`, `skill-scaffold`). Non-meta skills don't use the prefix. Reading a listing, you can tell meta-skills at a glance.
 
 ## Installing
 

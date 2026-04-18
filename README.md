@@ -10,11 +10,12 @@ Private skill marketplace for agentic automation — a small, opinionated collec
 ├── plugins/
 │   └── shnz/                 # the plugin bundling all skills in this repo
 │       └── skills/
-│           ├── dump/             # repomix-based context bundling
-│           ├── agent-browser/    # browser automation CLI + per-site registry
-│           ├── narrative-commit/ # split uncommitted changes into a clean conventional-commits sequence
-│           ├── docker-roast/     # opinionated Dockerfile linter wrapper (droast) with demo examples
-│           └── skill-iterate/    # meta-skill: iterate a target skill toward convergence
+│           ├── dump/                    # repomix-based context bundling
+│           ├── agent-browser/           # browser automation CLI + per-site registry
+│           ├── narrative-commit/        # split uncommitted changes into a clean conventional-commits sequence
+│           ├── docker-roast/            # opinionated Dockerfile linter wrapper (droast) with demo examples
+│           ├── create-concept-website/  # scaffold a zero-build single-page HTML concept site (Vision/Roadmap/Map) with slide mode + PDF export
+│           └── skill-iterate/           # meta-skill: iterate a target skill toward convergence
 └── docs/                     # cross-cutting process notes
     └── AB_TESTING.md         # how to validate that a skill actually helps
 ```
@@ -34,6 +35,7 @@ Each skill directory follows the same layout:
 | [`agent-browser`](plugins/shnz/skills/agent-browser/) | Drives any web UI with the `agent-browser` CLI and a persistent per-site registry (gitignored) that accumulates selectors, gotchas, and workflows across sessions. |
 | [`narrative-commit`](plugins/shnz/skills/narrative-commit/) | Analyses uncommitted changes, groups them by layer/feature, proposes a conventional-commits plan, and (on approval) creates the commits. No AI attribution in messages. |
 | [`docker-roast`](plugins/shnz/skills/docker-roast/) | Wraps the opinionated [`droast`](https://github.com/immanuwell/dockerfile-roast) Dockerfile linter (63 rules, humorous commentary). Prefers a local binary, falls back to the official Docker image — zero install required. Ships 3 deliberately-bad + 1 reference-good demo Dockerfiles via the `examples` subcommand. |
+| [`create-concept-website`](plugins/shnz/skills/create-concept-website/) | Scaffolds a **zero-build, single-page HTML** concept website that explains a concept top-down (Vision = why / art of the possible) and bottom-up (Roadmap = tactical waves; Map = the layers with readiness levels). One `index.html` + `assets/style.css` + `assets/script.js` — opens directly from `file://`, no Jekyll, no Node. Designed to get a group of people on the same page. Modeled on [stevehoggnz.github.io/ai-sdlc](https://stevehoggnz.github.io/ai-sdlc/). Includes slide-deck present mode (arrow-key nav, no content duplication) and PDF export (print CSS baseline + optional Puppeteer build script). Trigger: `/create-concept-website`, "concept website for X", "vision + roadmap site". |
 | [`skill-iterate`](plugins/shnz/skills/skill-iterate/) | **Meta-skill.** Drives a target skill toward its optimal floor by running a probe subagent on a concrete task, collecting a structured report, applying concrete edits on your approval, and repeating until the probe reports no friction. Complements `docs/AB_TESTING.md` (A/B is "should this skill exist?"; `skill-iterate` is "is it as good as it can be?"). |
 
 ### Naming convention

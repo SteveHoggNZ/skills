@@ -1,24 +1,37 @@
 # shnz-skills
 
-Private skill marketplace for agentic automation — a small, opinionated collection of Claude Code (and adapter-compatible) skills that I use day-to-day.
+Vendor-neutral skill marketplace for agentic automation — a small, opinionated collection of skills that work with any SKILL.md-compatible client. Tested with Claude Code and GitHub Copilot CLI.
 
 ## Structure
 
 ```
 /
-├── marketplace.json          # marketplace manifest consumed by Claude Code
+├── marketplace.json                          # → .claude-plugin/marketplace.json (symlink, for humans)
+├── .claude-plugin/
+│   └── marketplace.json                      # canonical marketplace manifest
+├── .github/
+│   └── plugin/
+│       └── marketplace.json                  # → ../../.claude-plugin/marketplace.json (symlink, Copilot's preferred path)
 ├── plugins/
-│   └── shnz/                 # the plugin bundling all skills in this repo
+│   └── shnz/                                 # the plugin bundling all skills in this repo
+│       ├── plugin.json                       # → .claude-plugin/plugin.json (symlink, Copilot-friendly plugin-root path)
+│       ├── .claude-plugin/
+│       │   └── plugin.json                   # canonical plugin manifest
 │       └── skills/
-│           ├── dump/                    # repomix-based context bundling
-│           ├── agent-browser/           # browser automation CLI + per-site registry
-│           ├── narrative-commit/        # split uncommitted changes into a clean conventional-commits sequence
-│           ├── docker-roast/            # opinionated Dockerfile linter wrapper (droast) with demo examples
-│           ├── create-concept-website/  # scaffold a zero-build single-page HTML concept site (Vision/Roadmap/Map) with slide mode + PDF export
-│           └── skill-iterate/           # meta-skill: iterate a target skill toward convergence
-└── docs/                     # cross-cutting process notes
-    └── AB_TESTING.md         # how to validate that a skill actually helps
+│           ├── dump/                         # repomix-based context bundling
+│           ├── agent-browser/                # browser automation CLI + per-site registry
+│           ├── narrative-commit/             # split uncommitted changes into a clean conventional-commits sequence
+│           ├── docker-roast/                 # opinionated Dockerfile linter wrapper (droast) with demo examples
+│           ├── create-concept-website/       # scaffold a zero-build single-page HTML concept site (Vision/Roadmap/Map) with slide mode + PDF export
+│           └── skill-iterate/                # meta-skill: iterate a target skill toward convergence
+└── docs/                                     # cross-cutting process notes
+    ├── AB_TESTING.md                         # how to validate that a skill actually helps
+    └── INSTALL.md                            # full install / update / uninstall flows
 ```
+
+**On the symlinks.** The canonical manifests live in `.claude-plugin/` because that path is read natively by both Claude Code and GitHub Copilot CLI. The symlinks at `/marketplace.json`, `.github/plugin/marketplace.json`, and `plugins/shnz/plugin.json` point at the canonicals so every supported client — and human browsers on the repo — finds the same file. Edit the canonical; the symlinks follow automatically.
+
+*Windows note:* Git needs `core.symlinks=true` (the default on modern Git for Windows with Developer Mode enabled) to materialise symlinks on checkout. Without it, the symlinked files clone as plain text containing the target path.
 
 Each skill directory follows the same layout:
 
@@ -46,14 +59,23 @@ Skills whose job is to operate on other skills use the **`skill-*` prefix** (cur
 
 See [docs/INSTALL.md](docs/INSTALL.md) for the full install + update + uninstall flow, including the developer mode for hacking on this marketplace.
 
-**TL;DR — as a consumer**, in a Claude Code session:
+**TL;DR — as a consumer.**
+
+In a Claude Code session:
 
 ```
 /plugin marketplace add SteveHoggNZ/skills
 /plugin install shnz@shnz-skills
 ```
 
-Claude Code clones the repo into its managed cache and auto-pulls updates on startup. This repo is **private** — collaborator access with SSH loaded (`ssh-add`) or a `GITHUB_TOKEN` is required. Pin to a version with `SteveHoggNZ/skills@v1.0` if you want a specific tag/branch/commit.
+Or in GitHub Copilot CLI:
+
+```
+copilot plugin marketplace add SteveHoggNZ/skills
+copilot plugin install shnz
+```
+
+Either client clones the repo into its own managed cache and picks up updates on startup. This repo is **private** — collaborator access with SSH loaded (`ssh-add`) or a host-appropriate token (`GITHUB_TOKEN` for both clients) is required for background auto-updates. Pin to a version with `SteveHoggNZ/skills@v1.0` if you want a specific tag/branch/commit.
 
 Skills are then invoked via natural language matching their `description`, or explicitly via `/<skill-name>` when they register a slash command. Developers editing this marketplace should install from a local clone instead — see [INSTALL.md](docs/INSTALL.md#for-developers).
 

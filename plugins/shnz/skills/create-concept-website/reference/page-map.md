@@ -8,7 +8,11 @@ For lifecycle concepts, the map is the lifecycle stages (Plan → Design → Cod
 
 1. **Intro** — `<h1>` + `.lede`.
 2. **Legend** — a small table mapping the three badges (Ready / Emerging / Preview) to meanings. Eyebrow `THE LEGEND` above it.
-3. **At a glance** — a `.cards` grid with one `<a class="card">` per layer: name + readiness badge + one-line purpose. Colored accent via `.card` border-color on hover; no per-card color accent required. Each card links to the layer's anchor below.
+3. **At a glance** — pick one shape:
+   - **Hex grid** (preferred for lifecycle-shaped concepts): `.hex-grid` with one `.hex` per phase. Feels modern, inherits site typography, reads as a loop. Best when the Map *is* the lifecycle (e.g. 6–8 phases that loop back). See [diagrams.md](./diagrams.md) §`.hex-grid`.
+   - **Card grid**: `.cards` with one `<a class="card">` per layer — name, readiness badge, one-line purpose. Each card links to the layer's anchor below. Best when layers are not sequential and the reader scans for readiness.
+   - **Mermaid flowchart** (fallback): one `<pre class="mermaid">` inside a `<figure class="diagram">` rendering a `flowchart LR`. Use when the layer relationships have branches or joins that a hex grid cannot convey. No node-fill colours; readiness via `classDef` stroke only. See [diagrams.md](./diagrams.md) §Mermaid.
+   Pick one, not all three. A good Map has exactly one diagram at the top and one summary table at the bottom.
 4. **One layer per `<h2>` section**, with `id="layer-N"` for the at-a-glance cards to target. Each has:
    - Readiness badge inline in the heading (`<span class="badge badge-ready">Ready</span>`).
    - `<strong>Purpose:</strong>` one line.
@@ -27,7 +31,7 @@ For lifecycle concepts, the map is the lifecycle stages (Plan → Design → Cod
 
 ```html
 <div class="page" id="map">
-  <h1>The <span class="gradient">Map</span></h1>
+  <h1>The Map</h1>
   <p class="lede">How {{concept}} decomposes into layers, and what's ready today.</p>
 
   <p class="eyebrow">The legend</p>
@@ -43,17 +47,37 @@ For lifecycle concepts, the map is the lifecycle stages (Plan → Design → Cod
 
   <p class="eyebrow">At a glance</p>
   <h2>{{Overview heading — e.g. "Every layer, every badge"}}</h2>
+
+  <!-- Option A (preferred for lifecycle-shaped concepts): HTML-native hex grid.
+       Inherits site typography, prints well, no runtime dep. -->
+  <figure class="diagram">
+    <div class="hex-grid">
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 1}}</h4><p>{{2-word purpose}}</p></div></div>
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 2}}</h4><p>{{2-word purpose}}</p></div></div>
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 3}}</h4><p>{{2-word purpose}}</p></div></div>
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 4}}</h4><p>{{2-word purpose}}</p></div></div>
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 5}}</h4><p>{{2-word purpose}}</p></div></div>
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 6}}</h4><p>{{2-word purpose}}</p></div></div>
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 7}}</h4><p>{{2-word purpose}}</p></div></div>
+      <div class="hex"><div class="hex-inner"><h4>{{Layer 8}}</h4><p>{{2-word purpose}}</p></div></div>
+    </div>
+    <figcaption>{{One sentence; mention if the last phase loops back to the first.}}</figcaption>
+  </figure>
+
+  <!-- Option B (non-sequential layers / readiness-first scan): card grid. -->
+  <!--
   <div class="cards">
     <a class="card" href="#layer-1" onclick="document.getElementById('layer-1').scrollIntoView({behavior:'smooth'}); return false;">
       <h3>{{Layer 1 name}} <span class="badge badge-ready">Ready</span></h3>
       <p>{{one-line purpose}}</p>
     </a>
-    <a class="card" href="#layer-2" onclick="document.getElementById('layer-2').scrollIntoView({behavior:'smooth'}); return false;">
-      <h3>{{Layer 2 name}} <span class="badge badge-emerging">Emerging</span></h3>
-      <p>{{one-line purpose}}</p>
-    </a>
-    <!-- one <a class="card"> per layer -->
+    …
   </div>
+  -->
+
+  <!-- Option C (fallback, branching/joining layers): mermaid flowchart.
+       See reference/diagrams.md §Mermaid. -->
+
 
   <h2 id="layer-1">{{Layer 1 name}} <span class="badge badge-ready">Ready</span></h2>
   <p><strong>Purpose:</strong> {{one line}}</p>
@@ -107,7 +131,7 @@ Notes:
 
 ## What NOT to do on the Map section
 
-- **Don't use mermaid for the "At a glance" diagram.** The default scaffold ships no build-step plugins; raw ```mermaid blocks will render as code. Use the HTML card grid. Reach for mermaid only if the user is also adding `mermaid.js` from a CDN (which adds a runtime dep).
+- **Don't pile every diagram type into the Map.** One shape at "At a glance" (flowchart or card grid, not both) plus one summary table at the bottom. Mermaid is supported by the scaffold (lazy-loaded CDN — see [diagrams.md](./diagrams.md)), but a second diagram in the same section is almost always noise.
 - Don't invent "Emerging" entries to pad a layer. If a layer has nothing on the horizon, write "None yet." That honesty is what keeps the map trustworthy.
 - Don't mark everything Ready or everything Emerging. A uniform map is a signal the readiness tiers aren't well-defined.
 - Don't cross-link so aggressively that the Map becomes a link-dump. Each layer should link out to at most 2 resources.

@@ -122,16 +122,72 @@ Apply the voice and visual language consistently. Every section should:
 
 ### 5. Preview & iterate
 
-- Open the file directly: `open index.html` on macOS, or double-click in Finder. The site works from `file://`.
-- For a cleaner dev loop (live reload + correct CORS for any future fetch), a throwaway static server works: `python3 -m http.server 8000 --directory <target-dir>` and visit `http://localhost:8000/`. Unlike the Jekyll case, serving the target dir directly is **fine** — the files served are actual HTML, not markdown source.
-- Click through every tab. Confirm hash-based deep-linking (`index.html#roadmap` should land on the Roadmap tab).
-- **Verify slide mode**: click "Present", confirm arrow keys walk through every `<h2>` across the whole site, confirm Escape exits cleanly.
-- **Verify PDF**: `Cmd+P` and check that nav chrome / present button / footer are hidden and tables/callouts don't split awkwardly. If the user opted into the Puppeteer builder, run `npm run pdf` and open the output.
-- Read each section aloud (mentally). If a chunk hedges or sounds generic, rewrite it with a concrete example from the intake, or cut it.
-- Offer the user:
-  - A deployment hint (GitHub Pages: push the target dir to any branch, enable Pages; or `netlify deploy`; or copy the folder anywhere — it's portable).
-  - The optional Puppeteer PDF setup if they skipped it during scaffold.
-  - A follow-up iteration with `skill-iterate` once they've lived with the v1 for a bit.
+Open `index.html` directly (or `python3 -m http.server 8000 --directory <target-dir>` for live reload). Then walk through the checklist below. **Do not skip.** A site that looks right on the happy path but breaks at an edge is how concept sites earn the reputation of being generated, not built.
+
+#### Functional checks
+
+- Click every tab. Every `<div class="page">` gets activated and receives `aria-current="page"` on its button.
+- Hash deep-linking: visiting `index.html#roadmap` lands on Roadmap on first load (not Vision then a flicker to Roadmap). Refresh while on Roadmap stays on Roadmap.
+- Back / forward browser buttons move between tabs (the tab-click uses `history.pushState`).
+- Internal cross-section links from Vision into Roadmap / Map flip the tab, not just scroll.
+
+#### Slide / present mode
+
+- "Present" enters slide mode from the current tab's first `<h2>`.
+- Arrow keys, space, PageDown, PageUp, Home, End all work. Escape exits and restores the scroll position.
+- Clicking a link inside a slide behaves as a link (does not advance the slide).
+- `?present=1#slide-7` deep-links directly into slide 7.
+- Each `<section class="wave">` renders as one slide (not split by its inner `<h2>`).
+
+#### Print / PDF
+
+- `Cmd+P` hides header, footer, skip-link, Present button, and slide counter.
+- Every `.page` renders in the PDF (not just the active one).
+- Section breaks sit at `<h2>` boundaries, not mid-paragraph.
+- Badges show outlined with `✓` / `~` / `·` (the colour fallback). No invisible text.
+- Links print with their URL in parentheses after the label.
+- Mermaid diagrams print dark-on-light via the CSS filter. Confirm each `.diagram svg` is legible on paper.
+- If the Puppeteer builder is wired: `npm run pdf` produces `assets/<slug>.pdf`, the nav link resolves, the PDF opens cleanly, and any mermaid diagrams have rendered before capture.
+
+#### Diagrams (if any)
+
+- Mermaid CDN loads only when a `<pre class="mermaid">` is on the page. Pages without diagrams should show no network request to jsdelivr.
+- Each diagram sits inside a `<figure class="diagram">` wrapper with a `<figcaption>` that says what the diagram shows.
+- Node labels are short text. No emoji in node labels. No rainbow node fills.
+- Imported SVGs in `assets/diagrams/` have real `alt` descriptions (not "diagram").
+
+#### Keyboard-only navigation
+
+- Skip-link is the first focusable element and jumps past the nav to `#main`.
+- Tab order walks logo → each tab button → Present → main content links in visual order.
+- Focused tab shows a visible outline.
+- Tab buttons can be activated with Enter and Space.
+
+#### Graceful degradation
+
+- JS disabled: the first `<div class="page">` is visible (default `.active`); deep hash links do not work but nothing is broken. Tabs are not clickable but the first page is complete content.
+- Missing image: any `<img>` in the content has real `alt` text. If the image has a `src` that 404s, the layout does not collapse around it.
+- Missing `data/intake.yml`: the site still loads (the file is archival, not read by the page).
+- `file://` origin: the page works without a server (no `fetch` calls, no CORS-blocked assets).
+
+#### Voice / anti-slop
+
+Read the site aloud (mentally) and check:
+
+- **At most one em dash (`—`) per load-bearing section body** (Vision / Roadmap / Map). See [reference/voice.md](./reference/voice.md) §Em dashes for the rule and the fix (period, colon, or new sentence).
+- No phrase from the banned-defaults list in `voice.md` (Transform your, Unlock your, Seamless, Robust, It's worth noting, Let's delve into, etc.).
+- No gradient text in any `<h1>` or `<h2>`. No `<span class="gradient">` in the HTML.
+- No emoji in `.flow-badge`, `.pillar-icon`, `.path-emoji`, or eyebrow labels.
+- No Google Fonts `<link>` in `<head>`. The site is on the system stack.
+- Each section's first sentence names a specific thing the concept does, not a mood.
+
+If any item fails, fix it before declaring done.
+
+#### Offers after preview
+
+- Deployment hint (GitHub Pages: push the target dir to any branch, enable Pages; or `netlify deploy`; or copy the folder anywhere, it's portable).
+- The optional Puppeteer PDF setup if skipped during scaffold.
+- A follow-up iteration with `skill-iterate` once the v1 has lived for a bit.
 
 ## What NOT to do
 

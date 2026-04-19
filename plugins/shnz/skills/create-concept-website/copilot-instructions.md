@@ -13,6 +13,7 @@ When the user asks to create a concept website, vision/roadmap site, or explaine
   - [reference/page-vision.md](./reference/page-vision.md), [reference/page-roadmap.md](./reference/page-roadmap.md), [reference/page-map.md](./reference/page-map.md) — HTML section templates.
   - [reference/voice.md](./reference/voice.md) — voice + visual language.
   - [reference/scaffold.md](./reference/scaffold.md) — `index.html` shell + `assets/style.css` + `assets/script.js`.
+  - [reference/diagrams.md](./reference/diagrams.md) — themed Mermaid (lazy-loaded) + SVG drop-in.
   - [reference/slide-mode.md](./reference/slide-mode.md) — arrow-key "Present" mode design notes.
   - [reference/pdf-export.md](./reference/pdf-export.md) — print CSS baseline + optional Puppeteer build script.
 - **Never ship placeholder prose.** If you don't have enough material for a section, ask — don't hallucinate pillars or waves.

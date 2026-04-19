@@ -5,7 +5,7 @@ The Roadmap section is the tactical half of the site. It answers "what do I do o
 ## Structure (in order)
 
 1. **Intro** — `<h1>` + `.lede` one-liner.
-2. **Timeline bar** — `<div class="timeline">` at the top showing every wave's colored label + a gradient progress bar. The reader can see the full ascent before drilling in.
+2. **Timeline bar** — `<div class="timeline">` at the top. Each wave is a column with a small colored label above a flat segmented bar. No rainbow gradient. The reader sees the shape of the whole ascent before drilling in.
 3. **How to read this** — short `<ul>`: waves are sequential; checklist boxes are visual-only; success criteria gate the next wave.
 4. **Where to start** — one sentence pointing to Wave 1 (or wherever the reader should begin).
 5. **One `<section class="wave">` per wave.** Each is its own slide in present mode. Contains:
@@ -25,15 +25,23 @@ The Roadmap section is the tactical half of the site. It answers "what do I do o
 
 ## Wave color choice
 
-Use the palette progression `teal → blue → purple → orange → pink` across waves (`is-teal` → `is-blue` → `is-purple` → `is-orange` → `is-pink`). It matches the timeline gradient and reads as a progression from "early / foundation" to "mature / far".
+Use the palette progression `teal → blue → purple → orange → pink` across waves (`is-teal` → `is-blue` → `is-purple` → `is-orange` → `is-pink`). It reads as a progression from "early / foundation" to "mature / far" and applies only to the numbered wave marker and the small wave tag. No rainbow bar; no per-wave heading colour tint.
 
 For a 3-wave roadmap use `is-teal`, `is-purple`, `is-pink`. For a 4-wave roadmap use `is-teal`, `is-blue`, `is-orange`, `is-pink`.
+
+## Wave tags vs. adoption arc
+
+Sometimes the wave count and the underlying adoption-arc phase count don't line up. Example: the AI-SDLC concept has 5 waves of work but only 4 arc phases (Assistance → Augmentation → Orchestration → Autonomy). Resist the temptation to paper over the mismatch with hybrid tags like `Wave 2 to 3 · Augmentation to Orchestration`.
+
+The fix: **use the `<span class="wave-tag">` to name the arc phase the wave sits inside, and let two waves share a phase when the work warrants it.** So: Wave 1 "Assistance", Waves 2 and 3 "Augmentation", Wave 4 "Orchestration", Wave 5 "Autonomy". Readers understand that two waves of work can live inside one adoption phase.
+
+When the arc phases are load-bearing enough to be worth showing explicitly, add a `.chain` of the arc phases **above** the timeline (see [diagrams.md](./diagrams.md) §`.chain`). The chain shows the arc; the timeline + waves show the work; the wave tags are the link between them.
 
 ## Template (HTML — fills `<div class="page" id="roadmap">`)
 
 ```html
 <div class="page" id="roadmap">
-  <h1>Your <span class="gradient">{{Roadmap heading}}</span></h1>
+  <h1>{{Roadmap heading}}</h1>
   <p class="lede">The ordered path from zero to <a href="#vision" onclick="document.querySelector('[data-page=vision]').click(); return false;">the Vision</a>.</p>
 
   <!-- Timeline bar (always right after the lede) -->
@@ -71,7 +79,7 @@ For a 3-wave roadmap use `is-teal`, `is-purple`, `is-pink`. For a 4-wave roadmap
       <li><strong>{{Item name}}</strong> — {{concrete specifics}}</li>
     </ul>
 
-    <p class="eyebrow">📚 Learning resources</p>
+    <p class="eyebrow">Learning resources</p>
     <div class="resources">
       <a class="resource" href="{{url}}" target="_blank" rel="noopener">
         <span class="resource-source is-teal">GH Skill</span>{{resource title}}
@@ -96,7 +104,7 @@ For a 3-wave roadmap use `is-teal`, `is-purple`, `is-pink`. For a 4-wave roadmap
       <li><strong>{{Item}}</strong> — {{specifics}}</li>
       <!-- more items -->
     </ul>
-    <p class="eyebrow">📚 Learning resources</p>
+    <p class="eyebrow">Learning resources</p>
     <div class="resources">
       <a class="resource" href="{{url}}" target="_blank" rel="noopener">
         <span class="resource-source is-blue">MS Learn</span>{{title}}

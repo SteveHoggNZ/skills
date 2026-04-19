@@ -73,6 +73,20 @@ const browser = await puppeteer.launch();
 try {
   const page = await browser.newPage();
   await page.goto(pathToFileURL(indexPath).toString(), { waitUntil: 'networkidle0' });
+
+  // Wait for any lazy-loaded Mermaid diagrams to render before capture.
+  // mermaid adds `data-processed="true"` to each <pre class="mermaid"> once done.
+  await page.evaluate(async () => {
+    const pending = () =>
+      document.querySelectorAll('.mermaid:not([data-processed="true"])').length;
+    if (pending() === 0) return;
+    // Poll for up to 5 seconds; the render is fast on A4.
+    const deadline = Date.now() + 5000;
+    while (pending() > 0 && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  });
+
   await page.emulateMediaType('print');
 
   mkdirSync(outDir, { recursive: true });

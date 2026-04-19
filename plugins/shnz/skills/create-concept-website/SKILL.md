@@ -26,6 +26,7 @@ Follow the full procedure defined in [core.md](./core.md) in this skill's direct
   - [reference/page-map.md](./reference/page-map.md) — Map section structure + HTML template.
   - [reference/voice.md](./reference/voice.md) — voice, visual language, metaphor patterns.
   - [reference/scaffold.md](./reference/scaffold.md) — full `index.html` shell + `assets/style.css` + `assets/script.js`.
+  - [reference/diagrams.md](./reference/diagrams.md) — themed Mermaid (lazy-loaded) + SVG drop-in escape hatch + anti-slop rules.
   - [reference/slide-mode.md](./reference/slide-mode.md) — arrow-key "Present" mode design notes + customisation points.
   - [reference/pdf-export.md](./reference/pdf-export.md) — print CSS baseline + optional Puppeteer build script for a downloadable `<slug>.pdf`.
 - **Never ship placeholder prose.** Every section must reflect the user's actual concept; if you don't have enough material for a section, ask — don't hallucinate a pillar or a wave.

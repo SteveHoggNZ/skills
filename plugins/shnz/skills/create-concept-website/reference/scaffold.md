@@ -8,8 +8,9 @@ A single-page HTML site. Zero build step. Zero runtime dependencies. Opens direc
 <target-dir>/
 ├── index.html            # the whole site
 ├── assets/
-│   ├── style.css         # base + slide-mode + print CSS
-│   └── script.js         # tab switching + present mode
+│   ├── style.css         # base + diagram + slide-mode + print CSS
+│   ├── script.js         # tab switching + present mode + lazy mermaid init
+│   └── diagrams/         # (optional) hand-authored SVGs if used (Excalidraw, tldraw, Figma exports)
 └── data/
     └── intake.yml        # user's intake answers (see reference/intake.md §Canonical schema)
 ```
@@ -35,9 +36,6 @@ The shell. Replace `{{slug}}`, `{{title}}`, `{{one-liner}}` during scaffold. The
   <meta name="robots" content="noindex">
   <title>{{title}}</title>
   <meta name="description" content="{{one-liner}}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -78,9 +76,10 @@ The shell. Replace `{{slug}}`, `{{title}}`, `{{one-liner}}` during scaffold. The
 
 Notes:
 
-- `meta name="robots" content="noindex"` is a safe default for concept sites (often internal/work-in-progress). Remove when the site is ready for public indexing.
-- The Inter Google Font is declared at the shell level because it's a load-bearing part of the reference-site aesthetic. System-font fallback is in the CSS.
-- The `<button class="present-toggle">` lives inside the tab-nav so it appears at the far right. `script.js` wires its click handler.
+- `meta name="robots" content="noindex"` is a safe default for concept sites (often internal / work-in-progress). Remove when the site is ready for public indexing.
+- The site uses the system font stack. Do not add a Google Fonts `<link>` in `<head>`; see [voice.md](./voice.md) §"Banned defaults".
+- The `<button class="present-toggle">` sits inside the tab-nav so it appears at the far right. `script.js` wires its click handler.
+- Mermaid diagrams are supported via lazy-loaded CDN (see [diagrams.md](./diagrams.md)). `script.js` only injects the mermaid bundle if the page contains a `.mermaid` element, so diagram-free sites stay lean.
 
 ## `assets/script.js`
 
@@ -118,6 +117,9 @@ Tab switching + present mode in one file. Vanilla JS, no build. ~180 lines.
       }
     }
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+    // Mermaid can only measure a visible container, so render any
+    // diagrams on this tab now if they weren't rendered at load time.
+    if (window.__renderVisibleDiagrams) window.__renderVisibleDiagrams();
   }
 
   for (const btn of tabButtons) {
@@ -277,6 +279,84 @@ Tab switching + present mode in one file. Vanilla JS, no build. ~180 lines.
 
   // Enter via ?present=1
   if (new URLSearchParams(window.location.search).get('present') === '1') enterPresent();
+
+  // ── Mermaid (lazy-loaded) ───────────────────────────────
+  // Only inject the CDN bundle if this page has diagrams.
+  // Keeps sites without diagrams lean.
+  function readVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  function mermaidThemeVars() {
+    const bg = readVar('--bg');
+    const surface = readVar('--surface');
+    const surface2 = readVar('--surface-2');
+    const text = readVar('--text');
+    const textMuted = readVar('--text-muted');
+    const border = readVar('--border');
+    return {
+      fontFamily: readVar('--font') || 'ui-sans-serif, -apple-system, sans-serif',
+      fontSize: '14px',
+      background: 'transparent',
+      primaryColor: surface,
+      primaryTextColor: text,
+      primaryBorderColor: border,
+      secondaryColor: surface2,
+      tertiaryColor: surface2,
+      lineColor: textMuted,
+      textColor: text,
+      mainBkg: surface,
+      nodeBorder: border,
+      clusterBkg: bg,
+      clusterBorder: border,
+      noteBkgColor: surface2,
+      noteTextColor: text,
+      noteBorderColor: border,
+      edgeLabelBackground: bg,
+      actorBkg: surface,
+      actorBorder: border,
+      actorTextColor: text,
+      actorLineColor: textMuted,
+      signalColor: text,
+      signalTextColor: text,
+      labelBoxBkgColor: surface,
+      labelBoxBorderColor: border,
+      labelTextColor: text,
+      sequenceNumberColor: bg,
+      stateBkg: surface,
+      stateTextColor: text,
+    };
+  }
+  function renderVisibleDiagrams() {
+    if (!window.mermaid) return;
+    const activePage = pages.find((p) => p.classList.contains('active'));
+    if (!activePage) return;
+    const pending = activePage.querySelectorAll('.mermaid:not([data-processed="true"])');
+    if (pending.length === 0) return;
+    window.mermaid.run({ nodes: Array.from(pending) });
+  }
+  function initMermaid() {
+    if (!window.mermaid) return;
+    window.mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: mermaidThemeVars(),
+      securityLevel: 'strict',
+      flowchart: { htmlLabels: false, curve: 'basis' },
+      sequence: { mirrorActors: false, showSequenceNumbers: false },
+    });
+    renderVisibleDiagrams();
+  }
+  if (document.querySelector('.mermaid')) {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    s.defer = true;
+    s.onload = initMermaid;
+    document.head.appendChild(s);
+  }
+  // Render any pending diagrams when their page becomes visible.
+  // Mermaid measures the container at render time; hidden pages would
+  // otherwise get a 16×16 SVG on first render.
+  window.__renderVisibleDiagrams = renderVisibleDiagrams;
 })();
 ```
 
@@ -310,11 +390,13 @@ One file. Base → cards/badges/pullquotes → print → slide-mode. Adapt the a
   --ready:    #3bbfa0;
   --emerging: #e8913a;
   --preview:  #8888a0;
-  --gradient-text: linear-gradient(135deg, #9b7fff 0%, #00d4aa 100%);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --radius: 2px;
+  --radius-sm: 2px;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* System font stack. If a bespoke typeface is genuinely warranted for the
+     concept (serious editorial, specific industry), declare it here — but
+     default to the system so the site doesn't read as "another Inter hero". */
+  --font: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -368,16 +450,17 @@ a:hover { text-decoration: underline; }
 }
 .logo {
   font-weight: 700; font-size: 1.1rem;
-  background: var(--gradient-text); -webkit-background-clip: text; color: transparent;
+  color: var(--text);
   letter-spacing: -0.02em;
+  text-decoration: none;
 }
 .tab-nav {
   display: flex; gap: 2px;
-  background: var(--surface); border-radius: 10px; padding: 3px;
+  background: var(--surface); border-radius: var(--radius-sm); padding: 3px;
 }
 .tab-btn, .present-toggle {
   padding: 8px 18px; border: none; background: transparent; color: var(--text-muted);
-  font: inherit; font-size: 0.85rem; font-weight: 500; border-radius: 8px;
+  font: inherit; font-size: 0.85rem; font-weight: 500; border-radius: var(--radius-sm);
   cursor: pointer; transition: var(--transition); white-space: nowrap;
 }
 .tab-btn:hover, .present-toggle:hover {
@@ -402,9 +485,7 @@ h1 {
   font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
   line-height: 1.15; letter-spacing: -0.02em;
   margin-bottom: 1rem;
-}
-h1 .gradient {
-  background: var(--gradient-text); -webkit-background-clip: text; color: transparent;
+  color: var(--text);
 }
 h2 {
   font-size: 1.5rem; font-weight: 700;
@@ -414,15 +495,17 @@ h3 { font-size: 1.15rem; font-weight: 600; margin: 2rem 0 0.75rem; }
 p { margin: 1rem 0; color: var(--text); }
 p.lede { font-size: 1.15rem; color: var(--text-muted); margin-top: 0; }
 
-/* Pullquote / callout */
+/* Pullquote / callout. Distinction is via italic + larger size + padding,
+   not a one-sided colour stripe. */
 blockquote {
   margin: 1.5rem 0; padding: 1rem 1.25rem;
-  border-left: 3px solid var(--accent);
   background: var(--surface);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  font-size: 1.05rem; color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 1.05rem; font-style: italic; color: var(--text);
 }
-blockquote strong { color: var(--accent-light); }
+blockquote p { margin: 0; }
+blockquote strong { color: var(--text); font-style: normal; }
 
 /* Tables */
 table {
@@ -545,10 +628,9 @@ ul.checklist li::before {
 .flow-badge {
   padding: 0.65rem 0.9rem;
   background: var(--surface); border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
   border-radius: var(--radius-sm);
   font-weight: 600; font-size: 0.9rem;
-  color: var(--accent); white-space: nowrap;
+  color: var(--text); white-space: nowrap;
   display: flex; align-items: center;
 }
 .flow-arrow {
@@ -563,21 +645,26 @@ ul.checklist li::before {
   font-size: 0.95rem;
 }
 .flow-body strong { color: var(--text); }
-.flow-row.is-teal   .flow-badge { border-left-color: var(--accent-2);     color: var(--accent-2); }
-.flow-row.is-blue   .flow-badge { border-left-color: var(--blue);         color: var(--blue); }
-.flow-row.is-purple .flow-badge { border-left-color: var(--accent-light); color: var(--accent-light); }
-.flow-row.is-orange .flow-badge { border-left-color: var(--orange);       color: var(--orange); }
-.flow-row.is-pink   .flow-badge { border-left-color: var(--accent-3);     color: var(--accent-3); }
+/* Colour distinction lives in text weight and colour; no left stripes. */
+.flow-row.is-teal   .flow-badge { color: var(--accent-2); }
+.flow-row.is-blue   .flow-badge { color: var(--blue); }
+.flow-row.is-purple .flow-badge { color: var(--accent-light); }
+.flow-row.is-orange .flow-badge { color: var(--orange); }
+.flow-row.is-pink   .flow-badge { color: var(--accent-3); }
 
-/* Pillar grid — icon tile + colored top-border + body.
+/* Pillar grid — subtle-bordered card + bold heading + body.
    Usage:
      <div class="pillar-grid">
        <article class="pillar is-orange">
-         <div class="pillar-icon">🎯</div>
+         <p class="eyebrow">Principle 1</p>
          <h3>Intent Engineering</h3>
          <p>Communicate goals and constraints…</p>
        </article>
-     </div> */
+     </div>
+   The category cue is the colored eyebrow above the heading; the heading
+   itself carries the accent color. No one-sided colored stripes.
+   (Optional: a leading `<svg class="pillar-icon">` is supported by the rule
+   below for authors who want a real icon — do not use emoji as a stand-in.) */
 .pillar-grid {
   display: grid; gap: 1rem; margin: 2rem 0;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
@@ -586,23 +673,22 @@ ul.checklist li::before {
   padding: 1.25rem 1.5rem 1.5rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-top: 2px solid var(--accent);
   border-radius: var(--radius);
 }
 .pillar-icon {
-  width: 36px; height: 36px;
-  display: grid; place-items: center;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 1.15rem; margin-bottom: 1rem;
+  /* Optional SVG container; authors bring their own icon.
+     Do not put emoji here — see voice.md §Banned defaults. */
+  width: 28px; height: 28px;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
 }
-.pillar h3 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+.pillar h3 { margin: 0 0 0.5rem; font-size: 1.05rem; color: var(--text); }
 .pillar p  { margin: 0; color: var(--text-muted); font-size: 0.93rem; line-height: 1.55; }
-.pillar.is-teal   { border-top-color: var(--accent-2); }
-.pillar.is-orange { border-top-color: var(--orange); }
-.pillar.is-pink   { border-top-color: var(--accent-3); }
-.pillar.is-blue   { border-top-color: var(--blue); }
-.pillar.is-purple { border-top-color: var(--accent-light); }
+.pillar.is-teal   h3 { color: var(--accent-2); }
+.pillar.is-orange h3 { color: var(--orange); }
+.pillar.is-pink   h3 { color: var(--accent-3); }
+.pillar.is-blue   h3 { color: var(--blue); }
+.pillar.is-purple h3 { color: var(--accent-light); }
 
 /* Journey cards — eyebrow + colored role name + body. Usually 3 across.
    Usage:
@@ -688,15 +774,21 @@ ul.checklist li::before {
 .timeline-label.is-orange { color: var(--orange); }
 .timeline-label.is-pink   { color: var(--accent-3); }
 .timeline-label.is-yellow { color: var(--yellow); }
+/* Segmented flat bar — one cell per wave. No gradient. */
 .timeline-bar {
   grid-column: 1 / -1;
-  height: 6px; border-radius: 999px;
-  background: linear-gradient(90deg,
-    var(--accent-2) 0%,
-    var(--blue) 25%,
-    var(--accent-light) 50%,
-    var(--orange) 75%,
-    var(--accent-3) 100%);
+  display: grid;
+  grid-template-columns: repeat(var(--wave-count, 5), 1fr);
+  gap: 2px;
+  margin-top: 0.25rem;
+}
+.timeline-bar::before,
+.timeline-bar > * {
+  /* If author doesn't supply per-step markers, render a single flat bar */
+  content: '';
+  height: 4px;
+  background: var(--border);
+  grid-column: 1 / -1;
 }
 .timeline-hint {
   text-align: center; color: var(--text-muted);
@@ -744,30 +836,26 @@ ul.checklist li::before {
 .wave.is-orange::before { border-color: var(--orange);       color: var(--orange); }
 .wave.is-pink::before   { border-color: var(--accent-3);     color: var(--accent-3); }
 .wave.is-yellow::before { border-color: var(--yellow);       color: var(--yellow); }
-.wave h2 { font-size: 1.5rem; margin-top: 0.25rem; }
-.wave.is-teal   h2 { color: var(--accent-2); }
-.wave.is-blue   h2 { color: var(--blue); }
-.wave.is-purple h2 { color: var(--accent-light); }
-.wave.is-orange h2 { color: var(--orange); }
-.wave.is-pink   h2 { color: var(--accent-3); }
-.wave.is-yellow h2 { color: var(--yellow); }
+/* Wave heading stays neutral. The numbered marker carries the accent colour;
+   tinting the heading too doubles up on decoration. */
+.wave h2 { font-size: 1.5rem; margin-top: 0.25rem; color: var(--text); }
 
 .wave-tag {
   display: inline-block;
-  padding: 0.2rem 0.7rem;
+  padding: 0.2rem 0.65rem;
   font-size: 0.7rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.08em;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2); border: 1px solid var(--border);
   color: var(--text-muted);
   margin-bottom: 0.5rem;
 }
-.wave.is-teal   .wave-tag { color: var(--accent-2);     border-color: var(--accent-2); }
-.wave.is-blue   .wave-tag { color: var(--blue);         border-color: var(--blue); }
-.wave.is-purple .wave-tag { color: var(--accent-light); border-color: var(--accent-light); }
-.wave.is-orange .wave-tag { color: var(--orange);       border-color: var(--orange); }
-.wave.is-pink   .wave-tag { color: var(--accent-3);     border-color: var(--accent-3); }
-.wave.is-yellow .wave-tag { color: var(--yellow);       border-color: var(--yellow); }
+.wave.is-teal   .wave-tag { color: var(--accent-2); }
+.wave.is-blue   .wave-tag { color: var(--blue); }
+.wave.is-purple .wave-tag { color: var(--accent-light); }
+.wave.is-orange .wave-tag { color: var(--orange); }
+.wave.is-pink   .wave-tag { color: var(--accent-3); }
+.wave.is-yellow .wave-tag { color: var(--yellow); }
 
 /* Checklist — two-column variant for dense wave checklists. */
 ul.checklist.two-col {
@@ -831,16 +919,228 @@ ul.checklist.two-col li strong { color: var(--text); }
   padding: 1rem 1.25rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: var(--radius-sm);
 }
 .outcome .eyebrow { margin: 0 0 0.25rem; }
 .outcome p:last-child { margin: 0; font-size: 0.95rem; }
-.wave.is-teal   .outcome { border-left-color: var(--accent-2); }
-.wave.is-blue   .outcome { border-left-color: var(--blue); }
-.wave.is-purple .outcome { border-left-color: var(--accent-light); }
-.wave.is-orange .outcome { border-left-color: var(--orange); }
-.wave.is-pink   .outcome { border-left-color: var(--accent-3); }
+
+/* Diagram wrapper (mermaid or SVG).
+   Usage:
+     <figure class="diagram">
+       <pre class="mermaid">
+         flowchart LR
+           Plan --> Design --> Code
+       </pre>
+       <figcaption>What a ticket looks like end to end.</figcaption>
+     </figure>
+   For a static SVG (Excalidraw / tldraw / hand-authored):
+     <figure class="diagram">
+       <img src="assets/diagrams/lifecycle.svg" alt="Eight-stage lifecycle …">
+       <figcaption>…</figcaption>
+     </figure> */
+.diagram {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.diagram .mermaid,
+.diagram svg,
+.diagram img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+.diagram figcaption {
+  margin-top: 1rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  text-align: center;
+  font-style: italic;
+}
+/* Pre used for mermaid source shouldn't look like code */
+.diagram pre.mermaid {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  font-family: var(--font);
+  white-space: normal;
+}
+
+/* ── HTML-native diagram components ──────────────────── */
+
+/* Stack diagram — vertical layered blocks.
+   Usage:
+     <div class="stack-diagram">
+       <div class="stack-layer is-purple"><h4>Intent</h4><p>…</p></div>
+       <div class="stack-layer is-blue"><h4>Context</h4><p>…</p></div>
+       <div class="stack-layer is-teal"><h4>Prompting</h4><p>…</p></div>
+     </div>
+   The first layer sits on top and inherits slightly more visual weight. */
+.stack-diagram {
+  display: flex; flex-direction: column;
+  margin: 1.5rem 0;
+  border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--border);
+}
+.stack-layer {
+  padding: 1.1rem 1.4rem;
+  background: var(--surface);
+  position: relative;
+}
+.stack-layer + .stack-layer { border-top: 1px solid var(--border); }
+.stack-layer:first-child { background: var(--surface-2); }
+.stack-layer h4 {
+  margin: 0 0 0.2rem; font-size: 1rem; font-weight: 600;
+  color: var(--text);
+}
+.stack-layer p { margin: 0; color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; }
+.stack-layer.is-teal   h4 { color: var(--accent-2); }
+.stack-layer.is-blue   h4 { color: var(--blue); }
+.stack-layer.is-purple h4 { color: var(--accent-light); }
+.stack-layer.is-orange h4 { color: var(--orange); }
+.stack-layer.is-pink   h4 { color: var(--accent-3); }
+
+/* Chain — horizontal sequence of boxes connected by CSS arrows.
+   Usage:
+     <div class="chain">
+       <div class="chain-step is-teal"><h4>Assistance</h4><p>…</p></div>
+       <div class="chain-step is-blue"><h4>Augmentation</h4><p>…</p></div>
+       …
+     </div>
+   Lighter weight than .flow when the narrative is just a named sequence
+   without separate actor/action columns. */
+.chain {
+  display: flex; align-items: stretch;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  gap: 1.75rem;
+  padding: 0.25rem 0.25rem 0.75rem;
+}
+.chain-step {
+  position: relative; flex: 1 1 0;
+  min-width: 10rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.chain-step + .chain-step::before {
+  content: '';
+  position: absolute; left: -1.4rem; top: 50%;
+  width: 0.6rem; height: 0.6rem;
+  border-top: 2px solid var(--text-muted);
+  border-right: 2px solid var(--text-muted);
+  transform: translateY(-50%) rotate(45deg);
+}
+.chain-step h4 { margin: 0 0 0.2rem; font-size: 0.9rem; font-weight: 600; }
+.chain-step p  { margin: 0; color: var(--text-muted); font-size: 0.82rem; line-height: 1.5; }
+.chain-step.is-teal   h4 { color: var(--accent-2); }
+.chain-step.is-blue   h4 { color: var(--blue); }
+.chain-step.is-purple h4 { color: var(--accent-light); }
+.chain-step.is-orange h4 { color: var(--orange); }
+.chain-step.is-pink   h4 { color: var(--accent-3); }
+
+/* Hex grid — hexagonal cells for lifecycle / phase concepts.
+   The grid layout is rectangular; the "loop" is carried by the content
+   (last cell says "loops back to start"), not the layout itself.
+   Usage:
+     <div class="hex-grid">
+       <div class="hex"><div class="hex-inner"><h4>Plan</h4><p>Intent</p></div></div>
+       …
+     </div> */
+.hex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+  margin: 2rem 0;
+}
+.hex {
+  position: relative;
+  aspect-ratio: 1.15 / 1;
+  background: var(--border);
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+.hex::before {
+  content: '';
+  position: absolute; inset: 1px;
+  background: var(--surface);
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  z-index: 0;
+}
+.hex-inner {
+  position: relative; z-index: 1;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 0.5rem 1rem;
+}
+.hex-inner h4 { margin: 0 0 0.2rem; font-size: 0.88rem; font-weight: 600; color: var(--text); }
+.hex-inner p  { margin: 0; color: var(--text-muted); font-size: 0.78rem; line-height: 1.35; }
+.hex.is-teal   { background: var(--accent-2); }
+.hex.is-blue   { background: var(--blue); }
+.hex.is-purple { background: var(--accent-light); }
+.hex.is-orange { background: var(--orange); }
+.hex.is-pink   { background: var(--accent-3); }
+
+/* Pyramid — narrowing tiers. Up to 5 tiers; for more use .stack-diagram.
+   Usage:
+     <div class="pyramid">
+       <div class="pyramid-tier"><h4>Architect of Intent</h4></div>
+       <div class="pyramid-tier"><h4>Engineering Manager</h4></div>
+       <div class="pyramid-tier"><h4>Maker</h4></div>
+     </div>
+   Narrowest tier is first; widest is last. */
+.pyramid {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0.3rem; margin: 2rem 0;
+}
+.pyramid-tier {
+  padding: 0.85rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  width: 100%;
+}
+.pyramid-tier:nth-child(1) { max-width: 35%; }
+.pyramid-tier:nth-child(2) { max-width: 55%; }
+.pyramid-tier:nth-child(3) { max-width: 75%; }
+.pyramid-tier:nth-child(4) { max-width: 90%; }
+.pyramid-tier:nth-child(5) { max-width: 100%; }
+.pyramid-tier h4 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+.pyramid-tier p  { margin: 0.25rem 0 0; color: var(--text-muted); font-size: 0.85rem; }
+
+/* 2×2 matrix — four quadrants. Axis labels optional.
+   Usage (without axes):
+     <div class="matrix-2x2">
+       <div class="matrix-cell"><p class="eyebrow">High value · low effort</p><h4>Quick wins</h4><p>…</p></div>
+       <div class="matrix-cell"><p class="eyebrow">High value · high effort</p><h4>Strategic bets</h4><p>…</p></div>
+       <div class="matrix-cell"><p class="eyebrow">Low value · low effort</p><h4>Housekeeping</h4><p>…</p></div>
+       <div class="matrix-cell"><p class="eyebrow">Low value · high effort</p><h4>Traps</h4><p>…</p></div>
+     </div>
+   The eyebrow in each cell names the axis position so the diagram works
+   without a dedicated axis-label band. */
+.matrix-2x2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 2rem 0;
+}
+.matrix-cell {
+  padding: 1.1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.matrix-cell .eyebrow { margin: 0 0 0.25rem; }
+.matrix-cell h4 { margin: 0 0 0.4rem; font-size: 1rem; }
+.matrix-cell p  { margin: 0; color: var(--text-muted); font-size: 0.88rem; line-height: 1.55; }
 
 /* ── Print / PDF ─────────────────────────────────────── */
 @media print {
@@ -860,7 +1160,6 @@ ul.checklist.two-col li strong { color: var(--text); }
   .page:first-of-type { page-break-before: auto; break-before: auto; }
 
   h1 { font-size: 20pt; page-break-after: avoid; }
-  h1 .gradient { color: #000; background: none; -webkit-text-fill-color: #000; }
   h2 { font-size: 15pt; page-break-after: avoid; margin-top: 18pt; }
   h3 { font-size: 12pt; page-break-after: avoid; }
 
@@ -895,6 +1194,39 @@ ul.checklist.two-col li strong { color: var(--text); }
 
   /* Timeline bar rasterises poorly; replace gradient with flat grey */
   .timeline-bar { background: #bbb !important; }
+
+  /* Diagrams: mermaid renders a dark-theme SVG at page load. For print,
+     flip it via CSS filter so it prints as dark-on-light on white paper.
+     Imported <img> diagrams are assumed to already be light-themed, so
+     they are left alone. */
+  .diagram { background: #fff !important; border-color: #888 !important; }
+  .diagram svg { filter: invert(1) hue-rotate(180deg); }
+  .diagram img { filter: none; }
+
+  /* HTML-native diagrams: flatten accent colours to black text + grey borders. */
+  .stack-diagram, .stack-layer,
+  .chain, .chain-step,
+  .pyramid-tier,
+  .matrix-cell {
+    background: #fff !important;
+    border-color: #888 !important;
+    color: #000 !important;
+  }
+  .stack-layer h4, .chain-step h4, .pyramid-tier h4, .matrix-cell h4 { color: #000 !important; }
+  .chain-step + .chain-step::before {
+    border-color: #000 !important;
+  }
+  /* Hexagons: clip-path strokes don't print well; render as bordered boxes. */
+  .hex {
+    clip-path: none !important;
+    background: #fff !important;
+    border: 1px solid #888 !important;
+    border-radius: 0 !important;
+    aspect-ratio: auto !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+  .hex::before { display: none !important; }
+  .hex-inner { padding: 0 !important; }
 
   a { color: #000; text-decoration: underline; }
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 9pt; color: #444; }
@@ -961,27 +1293,32 @@ If the user wants a distinct landing section before Vision (e.g., the reference 
 ```html
 <div class="page active" id="home">
   <section class="hero">
-    <span class="hero-badge">{{category or status}}</span>
-    <h1>{{concept title}} <span class="gradient">{{highlight}}</span></h1>
+    <h1>{{concept title}}</h1>
     <p class="lede">{{one-liner}}</p>
   </section>
 
   <div class="cards">
     <a class="card" href="#vision"  onclick="document.querySelector('[data-page=vision]').click(); return false;">
-      <h3>Vision →</h3>
+      <h3>Vision</h3>
       <p>{{one-line about the why}}</p>
     </a>
     <a class="card" href="#roadmap" onclick="document.querySelector('[data-page=roadmap]').click(); return false;">
-      <h3>Roadmap →</h3>
+      <h3>Roadmap</h3>
       <p>{{one-line about the how}}</p>
     </a>
     <a class="card" href="#map"     onclick="document.querySelector('[data-page=map]').click(); return false;">
-      <h3>Map →</h3>
+      <h3>Map</h3>
       <p>{{one-line about the what}}</p>
     </a>
   </div>
 </div>
 ```
+
+Notes on the hero:
+
+- No gradient text in the heading. State the concept plainly in one color.
+- Skip the `.hero-badge` "CATEGORY" pill unless it carries real information (e.g. "v2.0", "2026 roadmap"). Do not put mood words in it ("COMING SOON", "INTRODUCING").
+- The card headings are just labels. Skip right-pointing arrow glyphs ("Vision →") — they are a reflex, not information.
 
 (The inline `onclick` ensures the tab button also flips, not just the hash. A simpler alternative: just use `href="#vision"` and let `hashchange` handle it.)
 

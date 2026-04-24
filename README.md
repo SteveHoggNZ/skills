@@ -17,13 +17,17 @@ Vendor-neutral skill marketplace for agentic automation — a small, opinionated
 │       ├── plugin.json                       # → .claude-plugin/plugin.json (symlink, Copilot-friendly plugin-root path)
 │       ├── .claude-plugin/
 │       │   └── plugin.json                   # canonical plugin manifest
+│       ├── hooks/                            # plugin-level lifecycle hook contracts
+│       │   └── on_session_end.md             # onSessionEnd hook (registered skills, contract, registration pattern)
+│       ├── agents/                           # plugin-scoped orchestrators spanning multiple skills (reserved)
+│       │   └── README.md
 │       └── skills/
 │           ├── dump/                         # repomix-based context bundling
 │           ├── agent-browser/                # browser automation CLI + per-site registry
 │           ├── narrative-commit/             # split uncommitted changes into a clean conventional-commits sequence
 │           ├── docker-roast/                 # opinionated Dockerfile linter wrapper (droast) with demo examples
 │           ├── create-concept-website/       # scaffold a zero-build single-page HTML concept site (Vision/Roadmap/Map) with slide mode + PDF export
-│           ├── inspect-session/               # parse a Claude Code session JSONL and report tokens, cost, turns, tool calls, latency
+│           ├── inspect-session/              # parse a session JSONL and report tokens, cost, turns, tool calls, latency
 │           └── skill-iterate/                # meta-skill: iterate a target skill toward convergence
 └── docs/                                     # cross-cutting process notes
     ├── AB_TESTING.md                         # how to validate that a skill actually helps
@@ -40,6 +44,11 @@ Each skill directory follows the same layout:
 - `core.md` — canonical, agent-agnostic procedure.
 - `AGENTS.md` / `copilot-instructions.md` — adapters for Codex / GitHub Copilot.
 - `reference/` (when the skill has enough volume to benefit from progressive disclosure).
+
+Plugin-level directories sit above skills:
+
+- `hooks/` — lifecycle hook contracts. Each file documents one hook event, lists which skills register for it, and gives the registration pattern.
+- `agents/` — reserved for plugin-scoped orchestrators that coordinate multiple skills. Individual skill sub-agents stay inside their skill directory.
 
 ## Skills
 
@@ -89,4 +98,4 @@ Before promoting a new skill — or a significant change — validate that it ac
 
 - Skills are multi-agent where it's cheap to be: a `core.md` + thin adapter files.
 - Anything the skill learns at runtime (e.g. `agent-browser`'s `.registry/`) is gitignored per-skill. Shared knowledge lives in the committed reference material.
-- Skill directories are self-contained — no cross-skill imports.
+- Skill directories are self-contained — no cross-skill imports. Plugin-level `hooks/` and `agents/` directories are the intentional exception: they coordinate across skills at the plugin boundary.

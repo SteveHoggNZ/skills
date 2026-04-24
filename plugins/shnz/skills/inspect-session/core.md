@@ -1,12 +1,14 @@
 # Inspect Session
 
-Parse a Claude Code session JSONL transcript and report a concise metrics summary covering performance, cost, and activity shape.
+Parse a session JSONL transcript and report a concise metrics summary covering performance, cost, and activity shape.
+
+**This skill is runtime-agnostic:** It produces identical metrics on both Claude Code (manual invocation) and GitHub Copilot CLI (automatic on session end via hook). Only the timing and trigger differ.
 
 ## Why this skill exists
 
-Claude Code stores a full session transcript as JSONL under `~/.claude/projects/<project-slug>/<session-id>.jsonl`. Every user message, assistant message, tool call, and usage block lands there. The file holds enough data to answer "how long did this session run, what did it cost, where did the tokens go?" — but it's noisy enough that eyeballing it doesn't work.
+Both Claude Code and GitHub Copilot CLI store session transcripts as JSONL. Every user message, assistant message, tool call, and usage block lands there. The files hold enough data to answer "how long did this session run, what did it cost, where did the tokens go?" — but they're noisy enough that eyeballing them doesn't work.
 
-This skill wraps a deterministic Python script that reads the JSONL and emits a clean summary. No token spend on parsing; same answer every time; easy to pipe into other tools via `--json`.
+This skill wraps a deterministic Python script that reads JSONL and emits a clean summary. No token spend on parsing; same answer every time; easy to pipe into other tools via `--json`.
 
 ## Output shape
 
@@ -154,3 +156,34 @@ Good candidate for `skill-iterate` once a few real sessions have been inspected.
 - Price table drift as Anthropic ships new models.
 - Useful metrics not in v1 (e.g. time spent on specific tools, cost of a single turn).
 - Session aggregation across multiple JSONLs (closer to `monthly-insights`, but finer-grained).
+
+## Runtime invocation modes
+
+This skill works identically on all runtimes but is invoked differently:
+
+### Claude Code (manual)
+
+User explicitly invokes the skill:
+
+```bash
+/inspect-session
+# or
+/inspect-session 15f5fb6d-8170-4a51-90e6-0e4bfd82d7dc
+# or
+/inspect-session ~/.claude/projects/-Users-arinco-Projects-SteveHoggNZ-skills/session.jsonl
+```
+
+Claude Code agent follows the procedure in [SKILL.md](./SKILL.md), calling `python3 <skill-dir>/metrics.py [args]`.
+
+### GitHub Copilot CLI (automatic)
+
+Session metrics are collected **automatically** on session end via an `onSessionEnd` hook. The hook:
+
+1. Detects when a Copilot session terminates.
+2. Locates the session's JSONL transcript.
+3. Runs `metrics.py` and writes a `.metrics.json` file alongside the session.
+4. Optionally syncs metrics to a rolling aggregation (monthly, per-project, or per-session).
+
+For the plugin-level hook contract, see [hooks/on_session_end.md](../../../hooks/on_session_end.md). For the inspect-session hook implementation, see [reference/copilot-hook.md](./reference/copilot-hook.md).
+
+Users can still invoke the skill manually via Copilot CLI to inspect historical sessions or re-run metrics on an in-progress session.

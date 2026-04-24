@@ -1,22 +1,32 @@
 ---
 name: inspect-session
-description: "Inspect a Claude Code session JSONL transcript and report metrics: start/end time, wall-clock duration, input/output/cache tokens, cache hit rate, user and assistant turn counts, tool-call breakdown, slash-command usage, assistant-turn latency (min/median/p90/max), total USD cost with per-bucket breakdown, and cost per user turn. Use when the user says 'inspect this session', 'session metrics', 'how much did this conversation cost', 'how many tokens did I use', 'profile my session', or invokes /inspect-session. Reads JSONL files from ~/.claude/projects/<project>/; defaults to the most recent session in the current project. Outputs markdown by default; --json for machine-readable."
+description: "Parse a session JSONL transcript and report metrics: start/end time, wall-clock duration, input/output/cache tokens, cache hit rate, user/assistant turn counts, tool-call breakdown, slash commands, assistant-turn latency (min/median/p90/max), total USD cost with per-bucket breakdown, and cost per user turn. Use when the user says 'inspect this session', 'session metrics', 'how much did this cost', 'how many tokens', 'profile this session', or invokes /inspect-session. Outputs markdown by default; --json for machine-readable. Invocation is **runtime-dependent**: GitHub Copilot CLI collects metrics automatically on session end via hook; Claude Code requires manual invocation."
 argument-hint: "[session-id | path/to/session.jsonl] [--json]"
 ---
 
-<!-- Claude Code adapter — canonical procedure in core.md -->
+<!-- Runtime-agnostic skill adapter — canonical procedure in core.md -->
 
 Follow the full procedure defined in [core.md](./core.md) in this skill's directory.
 
-## Claude Code specifics
+## Runtime modes
 
-- **Parse `ARGUMENTS`**: accept an optional session UUID, an absolute path to a `.jsonl`, or nothing (defaults to the most recent session in the current project). A trailing `--json` flag switches output to machine-readable JSON.
-- **Run the bundled script with `Bash`**: `python3 <skill-dir>/metrics.py [args]`. The script is stdlib-only (no `pip install`, no runtime deps).
-- **Do not re-implement the parser in Claude's head.** The deterministic script is faster, cheaper, and gives the same answer every time. Only fall back to hand-parsing the JSONL if the user asks a *custom* question the script doesn't cover ("which tool produced the most tokens of output?"), and say so explicitly.
-- **Show the output verbatim** (or near-verbatim) by default. The markdown renders cleanly in the terminal; don't paraphrase away specific numbers.
-- **When the user asks follow-ups** (e.g. "is that expensive?", "which turn was slowest?"), answer from the same report or spot-check the JSONL with `Grep` — don't re-run `metrics.py` unless the session has changed.
+This skill works in both GitHub Copilot CLI and Claude Code, but invocation differs:
 
-## Typical first interaction
+| Runtime | Mode | When metrics are collected |
+|---------|------|---------------------------|
+| **GitHub Copilot CLI** | Automatic | On session end (via `onSessionEnd` hook) |
+| **Claude Code** | Manual | User invokes `/inspect-session` or natural-language trigger |
+
+Both generate identical metrics; only the timing and trigger differ. See [reference/copilot-hook.md](./reference/copilot-hook.md) for the Copilot integration pattern.
+
+## Implementation (both runtimes)
+
+- **Metric computation**: The bundled `metrics.py` script (stdlib-only, zero deps) parses JSONL and emits metrics.
+- **Argument parsing** (Claude Code only): Accept optional session UUID, absolute path, or nothing (defaults to most recent in project). Trailing `--json` flag switches output.
+- **Output**: Markdown (terminal-friendly) by default; JSON for pipes.
+- **Session file location**: JSONL transcripts live in `~/.claude/projects/<project>/` (Claude Code) or wherever Copilot stores sessions.
+
+## Typical first interaction (Claude Code)
 
 1. User says "inspect this session" or `/inspect-session`.
 2. Run `python3 <skill-dir>/metrics.py` with no args → report on the current project's most recent session.
@@ -26,3 +36,4 @@ Follow the full procedure defined in [core.md](./core.md) in this skill's direct
 ## Reference files
 
 - [reference/pricing.md](./reference/pricing.md) — how to update the embedded price table when Anthropic ships new models or adjusts rates.
+- [reference/copilot-hook.md](./reference/copilot-hook.md) — inspect-session hook implementation detail (TypeScript + Python examples, `.metrics.json` format, aggregation). Plugin-level hook contract: [hooks/on_session_end.md](../../../hooks/on_session_end.md).

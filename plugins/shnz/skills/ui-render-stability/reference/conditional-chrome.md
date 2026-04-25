@@ -85,7 +85,22 @@ If the chrome's *content* depends on data that loads (e.g. tab labels come from 
 
 Skeleton tabs in the right places don't shift layout; conditional tabs do.
 
+## The canonical fix primitive
+
+After applying this fix more than once, codify it as a reusable component. See [stable-slot.md](./stable-slot.md) for the `<StableSlot>` primitive — a tiny wrapper that reserves layout space even when its inner content is null. Drop into any conditional-chrome site:
+
+```tsx
+// Before (every site reimplements the gating + min-dimension trick)
+{visible && data && <div className="flex h-full shrink-0" style={{ minWidth: '320px' }}><Panel data={data} /></div>}
+
+// After (intent is explicit; consistent across the codebase)
+<StableSlot visible={visible} minWidth={320}>
+  {data && <Panel data={data} />}
+</StableSlot>
+```
+
 ## Pairs with
 
+- [stable-slot.md](./stable-slot.md) — the canonical fix primitive.
 - [skeleton-states.md](./skeleton-states.md) — the design rules for the placeholder content that fills persistent layout slots.
 - [layout-shift.md](./layout-shift.md) — when the chrome is rendered but its dimensions change.

@@ -77,7 +77,7 @@ Each category has a canonical fix. Read the relevant reference file. The general
 
 > **Layout should be persistent. Content should be progressive.**
 
-Persistent layout = the chrome (header, tabs, sidebar, panels) is always rendered, even when its data isn't loaded. Use disabled / placeholder / "0 items" states; don't conditionally mount the wrapper.
+Persistent layout = the chrome (header, tabs, sidebar, panels) is always rendered, even when its data isn't loaded. Use disabled / placeholder / "0 items" states; don't conditionally mount the wrapper. Codify the wrapper as a `<StableSlot>` primitive (see [reference/stable-slot.md](./reference/stable-slot.md)) once you've applied the fix more than once — it makes intent explicit and stops the inline `min-width` trick from drifting.
 
 Progressive content = the main pane fills in via skeleton → low-fidelity preview → final content, instead of empty → snap-to-final.
 

@@ -15,6 +15,16 @@ This file is the **self-improvement loop** for the skill. When a diagnostic surf
 | **Coarse cache key invalidation** — `invalidateQueries(['channel', id])` triggers re-fetch of every child slice; many components re-render simultaneously. | [cache-cascade.md](./cache-cascade.md) | Generic React Query anti-pattern |
 | **Mount thrash from racing data sources** — two effects setting the same state from different sources, or `isReady` flag flipping false during background refetches. | [mount-thrash.md](./mount-thrash.md) | Generic React anti-pattern |
 
+## Canonical fix primitives
+
+When the same fix recurs across a codebase, codify it as a reusable component. The catalogue:
+
+| Anti-pattern | Canonical fix primitive |
+|---|---|
+| Conditional layout chrome | [`<StableSlot>`](./stable-slot.md) — reserves layout space even when inner content is null. Drop in wherever you'd write `{cond && <SidebarOrPanel>}`. |
+
+When you find a repeating fix shape during a diagnostic, write it up here so the next person reaches for the primitive instead of reinventing it.
+
 ## How to add an entry
 
 When closing out a diagnostic:

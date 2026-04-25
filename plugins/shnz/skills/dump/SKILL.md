@@ -1,5 +1,6 @@
 ---
 name: dump
+kind: procedure
 description: "Generate focused code context bundles using repomix for third-party AI tools. Use when the user says /dump, context dump, export context, create context for, need context about, bundle for [AI tool], or wants to share codebase context externally."
 argument-hint: "Describe the topic, feature, or area you need context for"
 ---

@@ -1,5 +1,6 @@
 ---
 name: agent-browser
+kind: procedure
 description: "Drive any web UI with the agent-browser CLI and a persistent per-site registry of selectors, gotchas, and workflows that accumulates across sessions. Use when the user asks to navigate a site, click, fill forms, take a screenshot, record, scrape, or automate/test a webpage — trigger phrases include 'go to [url]', 'click on', 'fill the form', 'take a screenshot', 'scrape', 'automate', 'test the website', 'log into'."
 ---
 

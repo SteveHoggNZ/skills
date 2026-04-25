@@ -1,5 +1,6 @@
 ---
 name: inspect-session
+kind: procedure
 description: "Parse a session JSONL transcript and report metrics: start/end time, wall-clock duration, input/output/cache tokens, cache hit rate, user/assistant turn counts, tool-call breakdown, slash commands, assistant-turn latency (min/median/p90/max), total USD cost with per-bucket breakdown, and cost per user turn. Use when the user says 'inspect this session', 'session metrics', 'how much did this cost', 'how many tokens', 'profile this session', or invokes /inspect-session. Outputs markdown by default; --json for machine-readable. Invocation is **runtime-dependent**: GitHub Copilot CLI collects metrics automatically on session end via hook; Claude Code requires manual invocation."
 argument-hint: "[session-id | path/to/session.jsonl] [--json]"
 ---

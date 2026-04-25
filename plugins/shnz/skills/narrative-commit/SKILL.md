@@ -1,5 +1,6 @@
 ---
 name: narrative-commit
+kind: procedure
 description: "Turn uncommitted changes into a sequence of clean, conventional commits that read like chapters of a story. Use when the user asks to 'commit my changes', 'make commits', 'clean up commits', 'organize commits', 'create narrative commits', or has multiple unrelated changes that need to be split into logical, atomic commits. Do NOT trigger when the user supplies the commit message themselves or there's only a single trivial change."
 ---
 

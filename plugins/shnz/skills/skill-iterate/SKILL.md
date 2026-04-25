@@ -1,5 +1,6 @@
 ---
 name: skill-iterate
+kind: meta
 description: "Polish a target skill toward its optimal floor by running a probe subagent on a representative task, collecting a structured report, applying concrete edits, and repeating until convergence. Use when the user asks to 'iterate on a skill', 'improve a skill', 'optimize a skill', 'tune a skill', 'refine a skill', 'find friction in a skill', or similar meta-skill operations. One invocation = one iteration; user paces the loop."
 ---
 

@@ -1,5 +1,6 @@
 ---
 name: docker-roast
+kind: procedure
 description: "Lint a Dockerfile with the opinionated 63-rule linter `droast` (dockerfile-roast). Use when the user says 'lint my Dockerfile', 'roast my Dockerfile', 'review Dockerfile', 'check Dockerfile best practices', 'find Dockerfile issues', or invokes /docker-roast. Supports subcommands: default run against Dockerfile(s), 'examples' to install bundled demo Dockerfiles, 'install' to set up droast locally, 'help' for usage. Prefers a local droast binary; falls back to the ghcr.io/immanuwell/droast Docker image so no install is required."
 argument-hint: "[path-or-glob | examples [dest] | install | help]"
 ---

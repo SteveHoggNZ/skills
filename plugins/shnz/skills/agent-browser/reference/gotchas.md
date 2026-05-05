@@ -141,6 +141,31 @@ In `cmd1 && cmd2 && cmd3`, if `cmd1` errors, `cmd2` and `cmd3` never run. This i
 
 `npx agent-browser close` shuts the daemon. `stop` is not a subcommand — guessing it prints the top-level help and exits non-zero. If you need the CLI's own authoritative list, `npx agent-browser --help` is cheap.
 
+## `type` without a ref treats the text as a ref
+
+`npx agent-browser type "some text"` does **not** type into the focused element. The first positional argument is always interpreted as a ref (or CSS selector), so `"some text"` is looked up as an element reference and the command fails with `Element not found`.
+
+Always provide the target explicitly:
+
+```bash
+npx agent-browser type @e12 "hello"          # by ref
+npx agent-browser type '[contenteditable]' "hello"  # by CSS
+```
+
+`click @<ref>` first to focus, then `type @<ref> "text"` — the ref must appear in both calls.
+
+## `select=eq(n\,N)` frame numbers match the recording's native FPS, not extracted-frame numbers
+
+When you extract frames with `ffmpeg -vf "fps=4 …"`, the output files are numbered 0001–NNNN at 4 fps. But if you later try to extract a specific frame from the **original recording** using `select=eq(n\,N)`, `N` is a 0-based index into the recording's native frame rate (often 10–30 fps), not the 4-fps sequence.
+
+Example: recording at 10 fps, extracted frame `0720` (4-fps output) corresponds to time `(720-1)/4 = 179.75 s` → native frame `179.75 × 10 = 1798`.
+
+To extract a specific full-resolution frame by time, use the `-ss` flag instead of `select`:
+
+```bash
+ffmpeg -ss 179.75 -i recording.webm -vframes 1 /tmp/frame-at-180s.png
+```
+
 ## Screenshot paths resolve relative to the daemon's CWD
 
 `npx agent-browser screenshot out.png` writes `out.png` relative to wherever the daemon was launched, not your current shell. **Always pass an absolute path** (`/tmp/out.png`).

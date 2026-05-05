@@ -15,11 +15,13 @@ The session-scoped command-file invocation pattern is defined in [core.md](./cor
 
 - **`Bash` always passes `dangerouslyDisableSandbox: true`.** The `agent-browser` daemon uses a Unix socket that the sandbox blocks, producing `Daemon failed to start` otherwise.
 - **Tool mapping**:
-  - `Write` → overwrite the session's `/tmp/ab-cmd-<…>.sh` file per step; create `.registry/*.md` entries on first write.
+  - `Write` → overwrite the session's `/tmp/ab-cmd-<…>.sh` file per step; create `<skill-dir>/.registry/*.md` entries on first write (see note below).
   - `Bash` (sandbox disabled) → only to run `bash /tmp/ab-cmd-<…>.sh`.
-  - `Read` → existing `.registry/*.md` entries and `reference/*.md` files.
+  - `Read` → existing `<skill-dir>/.registry/*.md` entries and `reference/*.md` files.
   - `Edit` → partial updates to existing registry entries (preferred over `Write`).
   - `Grep` / `Glob` → searching the registry for related origins.
+
+> **Registry path**: `.registry/` lives **inside the skill's install directory** alongside `core.md` and `SKILL.md`. It is **not** relative to the project CWD. Resolve the path from this file's location — e.g. if this skill is at `/Users/alice/.copilot/installed-plugins/.../agent-browser/`, the registry is at `.../agent-browser/.registry/<slug>.md`.
 - **One approval across all sessions (optional).** Add to Claude Code `settings.json`:
   ```json
   "permissions": { "allow": ["Bash(bash /tmp/ab-cmd-:*)"] }
@@ -29,7 +31,7 @@ The session-scoped command-file invocation pattern is defined in [core.md](./cor
 
 1. Resolve the origin of the target URL.
 2. Compute the slug (see [reference/registry-format.md](./reference/registry-format.md)).
-3. Read `.registry/<slug>.md` if it exists. If it does, internalize its gotchas and stable selectors before issuing any commands — this is where the "enhanced" in the skill name comes from.
+3. Read `<skill-dir>/.registry/<slug>.md` if it exists (the registry is **in this skill's directory**, not the project CWD). If it does, internalize its gotchas and stable selectors before issuing any commands — this is where the "enhanced" in the skill name comes from.
 4. Only load `reference/commands.md`, `reference/gotchas.md`, `reference/patterns.md` when relevant.
 
 ## At the end of every browser task

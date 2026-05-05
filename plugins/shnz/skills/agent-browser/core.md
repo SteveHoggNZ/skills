@@ -47,11 +47,13 @@ Origin is the v1 fingerprint. If two distinct apps share the same origin (e.g. d
 
 ### 2. Load existing site knowledge
 
-Before issuing any browser command, check for an existing registry entry:
+Before issuing any browser command, check for an existing registry entry. The registry folder is **co-located with this skill's files** — it is NOT in the project CWD. Locate it relative to this `core.md` file:
 
 ```
-.registry/<slug>.md
+<skill-dir>/.registry/<slug>.md
 ```
+
+For example, if this skill is installed at `/Users/alice/.copilot/installed-plugins/shnz-skills/.../agent-browser/`, the registry lives at `.../agent-browser/.registry/<slug>.md`. Do **not** create or read `.registry/` relative to the project working directory.
 
 If it exists, **read it in full**. It contains:
 

@@ -208,6 +208,27 @@ npx agent-browser record start /tmp/flow.webm
 npx agent-browser record stop
 ```
 
+### Extracting frames for analysis
+
+Scale down to **25% of the original resolution** (`scale=iw*0.25:-2`) to keep file sizes small. For animation or timing bugs where sub-second changes matter, use a higher fps — the original recording is often at 4fps or higher; the scale filter is what keeps it safe:
+
+```bash
+# Default: 4fps at 25% scale — good for animation/timing bugs
+ffmpeg -i /tmp/flow.webm -vf "fps=4,scale=iw*0.25:-2" /tmp/frame-%04d.png
+
+# Fewer frames for coarser state transitions (e.g. page loads, navigation):
+ffmpeg -i /tmp/flow.webm -vf "fps=1,scale=iw*0.25:-2" /tmp/frame-%04d.png
+
+# Very sparse — one frame every 2 seconds:
+ffmpeg -i /tmp/flow.webm -vf "fps=1/2,scale=iw*0.25:-2" /tmp/frame-%04d.png
+```
+
+**Rules of thumb:**
+- **Always include the scale filter** — full-resolution frames exceed the model's size limit (~1MB) and are silently dropped with "removed due to size constraints"
+- Default to `fps=4,scale=iw*0.25:-2` — catches animation/timing bugs while staying well under size limits
+- Drop to `fps=1` only when timing precision doesn't matter
+- The original full-resolution 4fps extraction (no scale) was what caused the size issues — don't repeat that
+
 ## Reading page state with `eval`
 
 Useful one-liners:

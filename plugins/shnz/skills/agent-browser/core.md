@@ -153,4 +153,6 @@ A trivial session on an unknown site adds a final step: create the entry.
 
 ## Version assumptions
 
-This skill was written against `agent-browser` 0.25.x. If you encounter a command that's documented here but rejected by the CLI, check `npx agent-browser --help` and note the version drift in the site registry's frontmatter.
+This skill is current against `agent-browser` 0.27.x. The 0.27 release added React introspection (`react tree|inspect|renders|suspense`), Web Vitals (`vitals`), SPA `pushstate`, init scripts (`--init-script`/`--enable`), network route filtering by resource type, and cURL/Cookie-header cookie import — see [reference/commands.md](./reference/commands.md) and [reference/patterns.md](./reference/patterns.md).
+
+If you encounter a command that's documented here but rejected by the CLI, check `npx agent-browser --version` and `--help` and note the version drift in the site registry's frontmatter. The CLI also ships its own version-matched skill docs at `npx agent-browser skills get core --full` — useful as a sanity check when the version moves.

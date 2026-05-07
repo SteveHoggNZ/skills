@@ -169,3 +169,31 @@ ffmpeg -ss 179.75 -i recording.webm -vframes 1 /tmp/frame-at-180s.png
 ## Screenshot paths resolve relative to the daemon's CWD
 
 `npx agent-browser screenshot out.png` writes `out.png` relative to wherever the daemon was launched, not your current shell. **Always pass an absolute path** (`/tmp/out.png`).
+
+## `react tree` without `--json` silently emits nothing useful (0.27.0)
+
+`npx agent-browser react tree` (no flag) prints `✓ Done` and no tree. The other `react` subcommands behave normally; this one is broken in text mode. Always pass `--json`:
+
+```bash
+npx agent-browser react tree --json | jq '.data.tree[] | {id, name, parent}' | head
+```
+
+## `react *` subcommands require `--enable react-devtools` at `open` time (0.27+)
+
+The React DevTools hook must be installed before the app mounts. Without it, `react tree`, `react inspect`, `react renders`, and `react suspense` either return nothing or fail. The fix is launch-time — you can't bolt the hook onto a daemon that already started without it:
+
+```bash
+npx agent-browser close
+npx agent-browser open https://app.example.com --enable react-devtools
+npx agent-browser react tree | head
+```
+
+Same applies to `--init-script` — it's a daemon-launch flag, not retrofittable. To add or change one, `close` and re-`open`.
+
+## `vitals` needs interaction before CLS/INP have meaningful values (0.27+)
+
+LCP, FCP, and TTFB are observable from a single load. **CLS and INP only accumulate when the page is interacted with or scrolled**. Calling `vitals` on a freshly-opened idle page reports near-zero CLS/INP regardless of how janky the app actually is. Run the flow you care about first, then call `vitals --json`.
+
+## `pushstate` only helps when the app implements client routing (0.27+)
+
+`pushstate <url>` triggers SPA-style navigation: it auto-detects `window.next.router.push` (Next.js) and otherwise dispatches `history.pushState` + `popstate`/`navigate` events. On a non-SPA page (server-rendered, full reload per nav), it changes the URL but the app won't react — the page stays as-is. Use `open` for hard navigation; reach for `pushstate` only when you specifically want to test client-routing behavior.

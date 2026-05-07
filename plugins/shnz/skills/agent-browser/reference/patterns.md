@@ -267,6 +267,122 @@ npx agent-browser eval "document.title"
 npx agent-browser eval "location.href"
 ```
 
+## React introspection (0.27+)
+
+The `react *` subcommands need the React DevTools hook installed before the app mounts. **Open with `--enable react-devtools`** — bolting it on after navigation does not work.
+
+```bash
+# Daemon must be opened with the hook enabled. If a daemon is already running,
+# `close` first; --enable is a launch-time flag.
+npx agent-browser close
+npx agent-browser open https://app.example.com --enable react-devtools
+# react tree without --json silently emits "✓ Done" on 0.27.0 — always pass --json
+npx agent-browser react tree --json | jq '.data.tree[] | "\(.id)\t\(.name)"' | head
+npx agent-browser react inspect 47             # props, hooks, state, source, ancestor chain
+```
+
+### Profiling re-renders around an interaction
+
+Wrap the interaction in `react renders start|stop`:
+
+```bash
+npx agent-browser react renders start
+npx agent-browser click @e3
+npx agent-browser wait 500
+npx agent-browser react renders stop --json > /tmp/renders.json
+```
+
+The JSON output is the artifact to read — it lists which components re-rendered and how often. Pair with the `ui-render-stability` skill when the symptom is "this view feels janky".
+
+### Suspense boundary classifier
+
+Investigating a slow first paint or a flash that looks like a Suspense fallback?
+
+```bash
+npx agent-browser react suspense --only-dynamic --json
+```
+
+`--only-dynamic` filters out boundaries that never suspended in this session, which is almost always what you want.
+
+## Web Vitals (0.27+)
+
+```bash
+npx agent-browser vitals --json
+```
+
+CLS and INP only accumulate values once the user (or the agent) interacts with or scrolls the page — call `vitals` *after* exercising the flow, not on the freshly-loaded idle page. When the build is a profiling React build, the report also includes hydration phase timings.
+
+## SPA navigation without a full reload (0.27+)
+
+`pushstate` triggers client-side navigation, preserving daemon state and avoiding a hard reload. Auto-detects Next.js (`window.next.router.push`) and falls back to `history.pushState` + `popstate`/`navigate` events.
+
+```bash
+npx agent-browser pushstate /dashboard
+npx agent-browser wait 800
+npx agent-browser snapshot --interactive
+```
+
+Prefer this over `open <new-url>` when testing **client routing** behavior (layout-chrome stability across route changes, RSC fetches, route-level Suspense). Use `open` for initial-load behavior.
+
+## Reusing a real-browser session via cookie import (0.27+)
+
+If you're already logged into the target site in your everyday browser, the fastest way to hand that session to the agent is `cookies set --curl <file>`. The flag is misnamed — it auto-detects three formats:
+
+- **cURL** — paste the entire `curl '...' -H 'Cookie: ...'` line you copied from DevTools Network tab.
+- **JSON** — what EditThisCookie / DevTools cookie-export emit.
+- **Cookie-header** — a bare `Cookie: a=1; b=2` line. Requires `--domain <host>` to scope it.
+
+```bash
+# Copy as cURL from DevTools, save to /tmp/curl.sh, then:
+npx agent-browser open https://app.example.com
+npx agent-browser cookies set --curl /tmp/curl.sh
+npx agent-browser open https://app.example.com    # now logged in
+```
+
+Don't commit the cookie file. For repeatable scripted login, use the auth vault instead.
+
+## Network route filtering by resource type (0.27+, ⚠️ verify it fires)
+
+`network route` accepts `--resource-type <csv>` (`image`, `font`, `script`, `xhr`, `fetch`, `media`, …). Useful when you want to stub only API calls without breaking page assets, or block heavy assets while leaving HTML untouched.
+
+```bash
+# Stub /api responses but let CSS/images load normally
+npx agent-browser network route "**/api/**" --body '{"ok":true}' --resource-type xhr,fetch
+
+# Strip images for a faster perf reproduction
+npx agent-browser network route "**" --abort --resource-type image
+```
+
+`route` returns `Done` whether or not it actually intercepts. **Always verify** with `network requests --filter` after triggering the request:
+
+```bash
+npx agent-browser network requests --clear
+# ... trigger the call ...
+npx agent-browser network requests --filter "/api/"
+# If the request shows up with a real status, the route did NOT intercept.
+```
+
+There are open questions about `--body` reliability on Vite-dev-server origins on 0.27.0 — see [reference/commands.md](./commands.md) for the caveat. Verify before relying on either.
+
+## Init scripts (0.27+)
+
+Need a global set, a probe installed, or DevTools hooks injected **before** app code runs? Register an init script at `open` time:
+
+```bash
+# Repeatable; runs before every navigation
+npx agent-browser open https://app.example.com \
+  --init-script /tmp/seed-test-user.js \
+  --init-script /tmp/probe-router.js
+
+# Or via env, comma-separated
+AGENT_BROWSER_INIT_SCRIPTS=/tmp/a.js,/tmp/b.js npx agent-browser open https://...
+
+# Built-in features
+npx agent-browser open https://... --enable react-devtools
+```
+
+Each registration returns an id; remove with `npx agent-browser removeinitscript <id>`. Init scripts are launch-time — to add one to a running daemon, `close` and re-`open`.
+
 ## Version discovery
 
 Record the `agent-browser` version in registry entries so behavior drift is traceable:
@@ -274,3 +390,5 @@ Record the `agent-browser` version in registry entries so behavior drift is trac
 ```bash
 npx agent-browser --version
 ```
+
+The CLI ships its own version-matched skill docs (`npx agent-browser skills get core --full`). Worth a one-time read after a major version bump to spot new commands not yet covered here.

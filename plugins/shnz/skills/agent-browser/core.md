@@ -79,6 +79,7 @@ Load `commands.md` when you need syntax you don't remember. Load `gotchas.md` wh
 
 Run `agent-browser` commands to accomplish the user's goal. Key operating principles (spelled out in detail in the reference files):
 
+- **Reuse the running daemon. Don't `close` between tasks.** The daemon is single-tab and persistent; `open <url>` while it's up *navigates the existing window* (cookies/localStorage retained, no new browser instance). Calling `close` is what produces the "agent opened 17 windows for the same site" problem. Only `close` when the user asks, or when truly switching to a different `--session`. See [reference/patterns.md](./reference/patterns.md) §"Reusing a running daemon".
 - **Always `--interactive` first.** `agent-browser snapshot --interactive` returns only buttons/inputs/links — fast scan for what to click. Fall back to full snapshot for structural context.
 - **Refs are ephemeral.** After any DOM-changing action (click, fill, navigate) re-snapshot before referencing an element.
 - **Chain for speed.** `cmd1 && cmd2 && cmd3` in a single shell call avoids tool round-trips.

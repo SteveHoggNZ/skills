@@ -77,6 +77,46 @@ To skip the once-per-session prompt, add a wildcard allow rule. For Claude Code 
 
 (Adjust for other hosts' permission config. The principle is the same: match on the `/tmp/ab-cmd-` prefix.)
 
+## Reusing a running daemon (read this before `open`)
+
+The agent-browser daemon is **single-tab and process-persistent**. While a daemon is up, `open <url>` does not spawn a second browser — it navigates the existing window. Cookies and localStorage stay; auth survives.
+
+The "agent opened many windows for the same site" symptom is almost always caused by one thing: **calling `close` between unrelated tasks**. Don't.
+
+### The simple rule
+
+- **Just call `open <url>`.** If the daemon is up, it reuses the window. If not, it spawns one. Never branch on "is the daemon running?" — `open` already does the right thing.
+- **Never `close` mid-session.** Only `close` when the user asks, when you're genuinely switching to a different `--session` name, or when the browser is wedged.
+- The daemon defaults to session name `default`. Two unrelated agent runs that both leave the daemon up will share it — usually what you want. If you need isolation, pass `--session <name>` (or set `AGENT_BROWSER_SESSION`) consistently.
+
+### Optional: skip a redundant `open` when you're already on the right page
+
+If you want to avoid the cost of an `open` round-trip when the daemon is already on the target origin:
+
+```bash
+target="https://app.example.com/dashboard"
+target_origin="https://app.example.com"
+current=$(npx --yes agent-browser get url 2>/dev/null || true)
+
+case "$current" in
+  "$target_origin"*) ;;                                # already here, skip open
+  *) npx --yes agent-browser open "$target" ;;        # navigate or spawn
+esac
+
+npx --yes agent-browser snapshot --interactive
+```
+
+The `case` branch matters less than the rule above. Always-`open` is fine; `close`-then-`open` is what causes the window proliferation.
+
+### When `close` is the right call
+
+- The user explicitly says "close the browser" or the session is genuinely done.
+- You're switching to a different `--session` name and need a clean profile.
+- The daemon is in a stuck state (rare — try `agent-browser session` or `agent-browser get url` to confirm before nuking it).
+- You need to change a daemon-launch flag like `--headed`, `--enable react-devtools`, or `--init-script` — these only take effect on a fresh `open`.
+
+If multiple daemons have piled up across sessions, `close --all` clears every session's daemon at once.
+
 ## Opening a new session
 
 ```bash
@@ -86,6 +126,8 @@ npx agent-browser snapshot --interactive
 ```
 
 If a registry entry recorded a working viewport, use that instead of 1280×1024.
+
+(Reminder: a "new session" usually means "first session of the day" — re-`open` calls within the same day reuse the existing daemon. See "Reusing a running daemon" above.)
 
 ## Login flow (generic shape)
 

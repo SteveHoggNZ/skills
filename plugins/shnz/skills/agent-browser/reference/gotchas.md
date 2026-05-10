@@ -109,10 +109,18 @@ The snapshot output shows ARIA roles (`complementary`, `navigation`, `region`) d
 - ✅ `--selector "aside"` / `--selector "main"` / `--selector "[role=complementary]"` (if the `role` attribute is explicit)
 - ❌ `--selector "complementary"` (this is an ARIA role name, not a CSS selector)
 
-## Session persists across `open` navigations, not across `close`
+## Don't `close` between tasks — that's what spawns extra browser windows
 
-- `open <new-url>` while the daemon is running: cookies and localStorage persist. You stay logged in.
-- `close` then `open`: fresh browser, fresh cookies. Plan login steps accordingly.
+The daemon is **single-tab and persistent**. `open <new-url>` while it's running navigates the existing window — same browser, cookies/localStorage retained. `close` is what destroys the window; the next `open` then spawns a fresh one.
+
+If you find the agent has produced many browser windows for the same site, the cause is almost always: every task ended with `close` and started with `open`. Stop closing.
+
+- ✅ `open <url>` repeatedly across tasks → reuses the same window.
+- ❌ `close` → `open` between tasks → fresh window, fresh cookies, you have to log in again.
+
+`close` is the right call only when: the user asks, the session is genuinely done, you're switching `--session` name, the daemon is wedged, or you need to change a daemon-launch flag (`--headed`, `--enable react-devtools`, `--init-script`).
+
+See [reference/patterns.md](./patterns.md) §"Reusing a running daemon" for the full procedure.
 
 ## Many buttons have no accessible name
 
